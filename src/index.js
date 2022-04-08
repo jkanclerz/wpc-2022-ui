@@ -145,21 +145,25 @@ uploadBtn.addEventListener('click', () => {
 
 const orderAnimationBtn = document.querySelector('.orderAnimationBtn');
 
-orderAnimationBtn.addEventListener('click', () => {
+orderAnimationBtn.addEventListener('click', async () => {
     const orderAnimationRequest = {
         email: loginData.email,
         photos: [...toBeOrderedPhotos]
     }
 
-    console.log(orderAnimationRequest);
+    const idToken = await getToken();
 
     fetch(`${awsConfig.apiUrl}/orders`, {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Authorization': idToken
         },
         body: JSON.stringify(orderAnimationRequest)
-    }).then(response => console.log('animation ordered'));
+    })
+        .then(response => console.log('animation ordered'))
+        .catch(err => console.log(err))
+    ;
 })
 
 

@@ -1,4 +1,6 @@
 import {fromCognitoIdentityPool} from '@aws-sdk/credential-providers'
+import { awsConfig, authConfig } from './env';
+
 
 export const getCredentials = (token) => {
     return fromCognitoIdentityPool({
