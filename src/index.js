@@ -8,7 +8,7 @@ import {
     AuthenticationDetails,
 } from 'amazon-cognito-identity-js';
 
-import { getCredentials, getCurrentUserId } from './auth';
+import { getCredentials } from './auth';
 
 const myFirstActionBtn = document.querySelector('.myFirstActionBtn');
 myFirstActionBtn.addEventListener('click', hello);
@@ -22,6 +22,14 @@ const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 
 let toBeOrderedPhotos = [];
 
+export const getCurrentUserId = async () => {
+    const credentials = await getToken()
+        .then(token => getCredentials(token))
+        .then(cred => cred())
+    ;
+
+    return credentials.identityId;
+} 
 
 const getToken = () => {
     return new Promise((resolve, reject) => {

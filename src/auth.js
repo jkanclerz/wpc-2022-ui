@@ -9,12 +9,3 @@ export const getCredentials = (token) => {
         }
     });
 }
-
-export const getCurrentUserId = async () => {
-    const credentials = await getToken()
-        .then(token => getCredentials(token))
-        .then(cred => cred())
-    ;
-
-    return credentials.identityId;
-} 
