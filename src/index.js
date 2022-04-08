@@ -153,7 +153,7 @@ orderAnimationBtn.addEventListener('click', () => {
 
     console.log(orderAnimationRequest);
 
-    fetch('/my/api', {
+    fetch(`${awsConfig.apiUrl}/orders`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
