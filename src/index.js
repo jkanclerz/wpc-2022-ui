@@ -14,8 +14,12 @@ myFirstActionBtn.addEventListener('click', hello);
 const listBucketsBtn = document.querySelector('.listBucketsBtn');
 listBucketsBtn.addEventListener('click', () => listMyBuckets());
 
-import { S3Client, ListObjectsV2Command, PutObjectCommand} from "@aws-sdk/client-s3";
+import { S3Client, ListObjectsV2Command, PutObjectCommand, GetObjectCommand} from "@aws-sdk/client-s3";
 import {fromCognitoIdentityPool} from '@aws-sdk/credential-providers'
+const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
+
+
+let toBeOrderedPhotos = [];
 
 
 const getToken = () => {
@@ -96,14 +100,38 @@ const uploadToS3 = async (userId, file) => {
     })
 }
 
-const getPublicUrl = (key) => {
-    const url = `http://${awsConfig.bucket}.s3-website.eu-central-1.amazonaws.com/${key}`;
+const getPublicUrl = async (key) => {
+    const s3 = await getToken()
+        .then(token => getCredentials(token))
+        .then(credentials => getAuthenticatedS3Client(credentials))
+        .catch(err => console.log(':(((('));
+    
+    const url = await getSignedUrl(s3, new GetObjectCommand({
+        Key: key,
+        Bucket: awsConfig.bucket,
+    }), { expiresIn: 3600 });
 
     return url;
 }
 
+const createImagePreviewEl = (url) => {
+    const template = `<li>
+        <img src="${url}" height="200"/>
+    </li>`
+    ;
+    let div = document.createElement('div');
+    div.innerHTML = template.trim();
+
+    return div.firstChild;
+}
+
+const addToPreview = (previewListEl, url) => {
+    previewListEl.appendChild(createImagePreviewEl(url))
+}
+
 const filesInput = document.querySelector('.upload input[name="file"]');
 const uploadBtn = document.querySelector('.upload button.uploadBtn');
+const previewListEl = document.querySelector('.previewList');
 
 uploadBtn.addEventListener('click', () => {
     if (filesInput.files.length == 0) {
@@ -113,12 +141,33 @@ uploadBtn.addEventListener('click', () => {
     toUploadedFiles.forEach((file) => {
         getCurrentUserId()
             .then(userId => uploadToS3(userId, file))
-            .then(uploadResponse => getPublicUrl(uploadResponse.key))
-            .then(url => console.log(url))
+            .then(uploadResponse => {
+                toBeOrderedPhotos = [...toBeOrderedPhotos, uploadResponse.key]
+                return getPublicUrl(uploadResponse.key)
+            })
+            .then(url => addToPreview(previewListEl, url))
         ;
     });
 })
 
+const orderAnimationBtn = document.querySelector('.orderAnimationBtn');
+
+orderAnimationBtn.addEventListener('click', () => {
+    const orderAnimationRequest = {
+        email: loginData.email,
+        photos: [...toBeOrderedPhotos]
+    }
+
+    console.log(orderAnimationRequest);
+
+    fetch('/my/api', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(orderAnimationRequest)
+    }).then(response => console.log('animation ordered'));
+})
 
 
 const registerData = {
