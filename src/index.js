@@ -14,7 +14,7 @@ myFirstActionBtn.addEventListener('click', hello);
 const listBucketsBtn = document.querySelector('.listBucketsBtn');
 listBucketsBtn.addEventListener('click', () => listMyBuckets());
 
-import { S3Client, ListObjectsV2Command} from "@aws-sdk/client-s3";
+import { S3Client, ListObjectsV2Command, PutObjectCommand} from "@aws-sdk/client-s3";
 import {fromCognitoIdentityPool} from '@aws-sdk/credential-providers'
 
 
@@ -52,6 +52,15 @@ const getAuthenticatedS3Client = (credentials) => {
     return s3;
 }
 
+const getCurrentUserId = async () => {
+    const credentials = await getToken()
+        .then(token => getCredentials(token))
+        .then(cred => cred())
+    ;
+
+    return credentials.identityId;
+} 
+
 const listMyBuckets = async () => {
     const s3 = await getToken()
         .then(token => getCredentials(token))
@@ -66,6 +75,51 @@ const listMyBuckets = async () => {
         .then(filesObjects => filesObjects.map(file => file.Key))
         .then(names => console.log(names));
 }
+
+const uploadToS3 = async (userId, file) => {
+    const s3 = await getToken()
+        .then(token => getCredentials(token))
+        .then(credentials => getAuthenticatedS3Client(credentials))
+        .catch(err => console.log(':(((('));
+    
+    const uniqueKey = `uek-krakow/${userId}/animation-source/${file.name}`;
+
+    return s3.send(new PutObjectCommand({
+        Body: file,
+        Bucket: awsConfig.bucket,
+        Key: uniqueKey
+    })).then(response => {
+        return {
+            ...response,
+            key: uniqueKey
+        }
+    })
+}
+
+const getPublicUrl = (key) => {
+    const url = `http://${awsConfig.bucket}.s3-website.eu-central-1.amazonaws.com/${key}`;
+
+    return url;
+}
+
+const filesInput = document.querySelector('.upload input[name="file"]');
+const uploadBtn = document.querySelector('.upload button.uploadBtn');
+
+uploadBtn.addEventListener('click', () => {
+    if (filesInput.files.length == 0) {
+        return;
+    }
+    const toUploadedFiles = [...filesInput.files];
+    toUploadedFiles.forEach((file) => {
+        getCurrentUserId()
+            .then(userId => uploadToS3(userId, file))
+            .then(uploadResponse => getPublicUrl(uploadResponse.key))
+            .then(url => console.log(url))
+        ;
+    });
+})
+
+
 
 const registerData = {
     email: "daphney51@10minut.xyz",
