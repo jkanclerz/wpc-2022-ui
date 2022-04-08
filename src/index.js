@@ -8,6 +8,8 @@ import {
     AuthenticationDetails,
 } from 'amazon-cognito-identity-js';
 
+import { getCredentials, getCurrentUserId } from './auth';
+
 const myFirstActionBtn = document.querySelector('.myFirstActionBtn');
 myFirstActionBtn.addEventListener('click', hello);
 
@@ -15,7 +17,6 @@ const listBucketsBtn = document.querySelector('.listBucketsBtn');
 listBucketsBtn.addEventListener('click', () => listMyBuckets());
 
 import { S3Client, ListObjectsV2Command, PutObjectCommand, GetObjectCommand} from "@aws-sdk/client-s3";
-import {fromCognitoIdentityPool} from '@aws-sdk/credential-providers'
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 
 
@@ -38,15 +39,7 @@ const getToken = () => {
         })
     })
 }
-const getCredentials = (token) => {
-    return fromCognitoIdentityPool({
-        clientConfig: {region: awsConfig.region},
-        identityPoolId: authConfig.identityPoolId,
-        logins: {
-            [authConfig.loginName]: token
-        }
-    });
-}
+
 const getAuthenticatedS3Client = (credentials) => {
     const s3 = new S3Client({
         region: awsConfig.region,
@@ -56,14 +49,6 @@ const getAuthenticatedS3Client = (credentials) => {
     return s3;
 }
 
-const getCurrentUserId = async () => {
-    const credentials = await getToken()
-        .then(token => getCredentials(token))
-        .then(cred => cred())
-    ;
-
-    return credentials.identityId;
-} 
 
 const listMyBuckets = async () => {
     const s3 = await getToken()
